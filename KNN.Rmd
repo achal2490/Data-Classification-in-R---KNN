@@ -1,0 +1,418 @@
+---
+title: |
+    | Summary Report of KNN on Barry Becker Adult dataset
+author: | 
+    |     Achal, Gupta ---------------A00258772
+date: "April 5, 2019"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+##Data Set Information:
+Extraction was done by Barry Becker from the 1994 Census database.  <br>
+A set of reasonably clean records was extracted using the following conditions: ((AAGE>16) && (AGI>100) && (AFNLWGT>1)&& (HRSWK>0)) <br>
+Prediction task is to determine whether a person makes over 50K a year. <br>
+
+##Attribute Information
+####Listing of attributes: <br>
+**1.age: **continuous. <br>
+**2.workclass: **Private, Self-emp-not-inc, Self-emp-inc, Federal-gov, Local-gov, State-gov, Without-pay, Never-worked. 
+**3.fnlwgt: **continuous. <br>
+**education: **Bachelors, Some-college, 11th, HS-grad, Prof-school, Assoc-acdm, Assoc-voc, 9th, 7th-8th, 12th, Masters, 1st-4th, 10th, Doctorate, 5th-6th, Preschool. <br>
+**4.education-num: **continuous. <br>
+**5.marital-status: **Married-civ-spouse, Divorced, Never-married, Separated, Widowed, Married-spouse-absent, Married-AF-spouse. <br>
+**6.occupation: **Tech-support, Craft-repair, Other-service, Sales, Exec-managerial, Prof-specialty, Handlers-cleaners, Machine-op-inspct, Adm-clerical, Farming-fishing, Transport-moving, Priv-house-serv, Protective-serv, Armed-Forces. <br>
+**7.relationship: **Wife, Own-child, Husband, Not-in-family, Other-relative, Unmarried. <br>
+**8.race: **White, Asian-Pac-Islander, Amer-Indian-Eskimo, Other, Black. <br>
+**9.sex: **Female, Male. <br>
+**10.capital-gain: **continuous. <br>
+**11.capital-loss: **continuous. <br>
+**12.hours-per-week: **continuous. <br>
+**13.native-country: **United-States, Cambodia, England, Puerto-Rico, Canada, Germany, Outlying-US(Guam-USVI-etc), India, Japan, Greece, South, China, Cuba, Iran, Honduras, Philippines, Italy, Poland, Jamaica, Vietnam, Mexico, Portugal, Ireland, France, Dominican-Republic, Laos, Ecuador, Taiwan, Haiti, Columbia, Hungary, Guatemala, Nicaragua, Scotland, Thailand, Yugoslavia, El-Salvador, Trinadad&Tobago, Peru, Hong, Holand-Netherlands.<br>
+**14.income : **>50K, <=50K <br>
+
+
+
+```{r packagesLibrary, include=FALSE, warning = FALSE, message = FALSE}
+###IMPORTING LIBRARIES
+#Below code will import all the required libraries.
+#install.packages('class')
+#install.packages("corrplot")
+#install.packages("ggplot2")
+#install.packages("caret")
+#loading library
+library(class)
+library(corrplot)
+library(ggplot2)
+library(caret)
+```
+
+
+```{r dataAccquisition, include=FALSE, warning = FALSE, message = FALSE}
+###DATA ACCQUISTION
+#Below code will import the data present in CSV format into R and store it in a Data Frame. <br>
+Adult <- read.table('data/adult.data', sep = ",",strip.white = TRUE)
+
+#used sep = "," to remove the "," from the end of the data set <br>
+#used strip.white = TRUE to remove white space from all the data<br>
+
+#To view first n lines of Adult Variable
+head(Adult)
+
+#Display the internal structure of Adult
+str(Adult)
+
+```
+
+
+```{r dataCleaning, include=FALSE, warning = FALSE, message = FALSE}
+### Data Cleaning
+#As we can see "?" in the dataset. <br>
+#changing "?" with NA <br>
+Adult[Adult == "?"] <- NA
+
+#Checking no.of null values in Adult data set
+sum(is.na(Adult))
+
+#To count total number of row
+nrow(Adult)
+
+#Omitting NA values
+Adult <- na.omit(Adult)
+
+#Count how much we left after we removed NA values
+nrow(Adult)
+
+#Providing column names
+colnames(Adult) <- c('age','workclass','fnlwgt','education', 'education.num'
+                     ,'marital.status', 'occupation', 'relationship', 'race'
+                     ,'sex','capital.gain', 'capital.loss', 'hours.per.week'
+                     ,'native.country', 'income')
+
+#Display the internal structure of Adult
+str(Adult)
+
+#'Re-factoring' variables to exclude the unwanted levels created due to "?"
+Adult$workclass <- factor(Adult$workclass)
+Adult$occupation <- factor(Adult$occupation)
+Adult$native.country <- factor(Adult$native.country)
+
+summary(Adult)
+
+```
+
+
+##Correlation Matrix
+Positive correlations are displayed in blue and negative correlations in red color. Color intensity is proportional to the correlation coefficients.<br>
+It is very useful to highlight the most correlated variables in a data table. In this plot, correlation coefficients is colored according to the value.
+```{r correlationMatrix, echo= FALSE }
+Adult$income <- as.numeric(Adult$income)
+ContinousData<- data.frame(Adult$age, Adult$fnlwgt,Adult$education.num
+                           ,Adult$capital.gain,Adult$capital.loss
+                           ,Adult$hours.per.week,Adult$income)
+Dependency <- cor(ContinousData) # get correlations
+corrplot(Dependency, method = "color") 
+#Re-factoring income
+Adult$income <- factor(Adult$income, labels=c("<=50k", ">50k"))
+```
+```{r Checking1, include= FALSE }
+#Checking the levels
+levels(Adult$income)
+str(Adult)
+################################# END ###################################
+```
+
+From the above correlation matrix we can say that the variable income is positively correleted to other variables . <br>
+By looking at the colors we can easily know how continous variables are behaving with each other.
+
+
+## Age Distribution
+```{r echo=FALSE, fig.height=10, fig.width=10, warning=FALSE, tidy=FALSE}
+#assigning background color and border line
+fill <- "gold1"
+line <- "goldenrod2"
+
+######################## AGE DISTRIBUTION ###################################
+
+#calling ggplot functions to create a histogram
+ggplot(Adult, aes(x=age)) + 
+  geom_histogram(aes(fill = income), color = "black", binwidth = 1)+
+  ggtitle("Histogram of Age Distribution") +
+  xlab("Age") +
+  ylab("Count")
+
+################################ END ######################################
+```
+
+From this plot we can see that the percentage of people who make above 50K peaks are less than who make less than or equal to 50k. <br>
+The age of people who make more than 50k is normally distributted but people who make less than 50k is not normally distributted.
+
+## No. of Adult working in Different Work Class
+
+```{r echo=FALSE, fig.height=10, fig.width=10, warning=FALSE, tidy=FALSE}
+############# NO. of Adult working in Different Work Class ################
+
+#calling ggplot function to create a bar graph
+ggplot(data=Adult, aes(x=workclass)) +
+  geom_bar() +
+  geom_bar(fill = fill, colour = line) +
+  geom_text(stat='count', aes(label=..count..), vjust=-1) +
+  ggtitle("Different Work Class")+
+  xlab("Work Class") +
+  ylab("Count")
+################################ END ######################################
+```
+
+From the above graph we can easily get that most of the adults works in private sector.
+
+## No. of Adult and Education
+```{r echo=FALSE, fig.height=10, fig.width=12, warning=FALSE, tidy=FALSE}
+###################### NO. of Adult and Education #########################
+
+#calling ggplot function to create a bar graph
+ggplot(data=Adult, aes(x=education)) +
+  geom_bar() +
+  geom_bar(fill = fill, colour = line) +
+  geom_text(stat='count', aes(label=..count..), vjust=-1) +
+  ggtitle("Different Education")+
+  xlab("Education") +
+  ylab("Count")
+
+################################ END ######################################
+```
+
+
+From the above graph we can easily get that most of the adults are educated like they went to HS-grad and some college.
+
+## Marital Status
+
+```{r echo=FALSE, fig.height=10, fig.width=10, warning=FALSE, tidy=FALSE}
+################################ Marital Status ###########################
+
+#calling ggplot function to create a bar graph
+ggplot(data=Adult, aes(x=marital.status)) +
+  geom_bar() +
+  geom_bar(fill = fill, colour = line) +
+  geom_text(stat='count', aes(label=..count..), vjust=-1) +
+  ggtitle("Marital Status")+
+  xlab("Marital Status") +
+  ylab("Count")
+
+################################ END ######################################
+```
+
+Most of the Adult's marital status is Married-civ-spouse
+
+## No. of Adult working in Different Occupation 
+
+```{r echo=FALSE, fig.height=12, fig.width=16, warning=FALSE, tidy=FALSE}
+############# NO. of Adult working in Different Occupation ################
+
+#calling ggplot function to create a bar graph
+ggplot(data=Adult, aes(x=occupation)) +
+  geom_bar() +
+  geom_bar(fill = fill, colour = line) +
+  geom_text(stat='count', aes(label=..count..), vjust=-1) +
+  ggtitle("Different Occupation")+
+  xlab("Occupations") +
+  ylab("Count")
+
+################################ END ######################################
+```
+
+There are only armed force and private house service are the lowest number of adult's occupation
+
+## Adult Relationship
+
+```{r echo=FALSE, fig.height=10, fig.width=10, warning=FALSE, tidy=FALSE}
+######################### Adult Relationship #############################
+
+#calling ggplot function to create a bar graph
+ggplot(data=Adult, aes(x=relationship)) +
+  geom_bar() +
+  geom_bar(fill = fill, colour = line) +
+  geom_text(stat='count', aes(label=..count..), vjust=-1) +
+  ggtitle("Different Relationship")+
+  xlab("Relationship") +
+  ylab("Count")
+
+################################ END ######################################
+```
+
+Most of the Adults are husband in our dataset, after that the one which are not in family.
+
+## No. of Adult Race 
+
+```{r echo=FALSE, fig.height=10, fig.width=10, warning=FALSE, tidy=FALSE}
+########################### No. of Adult Race #############################
+
+#calling ggplot function to create a bar graph
+ggplot(data=Adult, aes(x=race)) +
+  geom_bar() +
+  geom_bar(fill = fill, colour = line) +
+  geom_text(stat='count', aes(label=..count..), vjust=-1) +
+  ggtitle("Different Race")+
+  xlab("Race") +
+  ylab("Count")
+
+################################ END ######################################
+```
+
+Adults are mostly from White race in our dataset
+
+## Gender
+```{r echo=FALSE, fig.height=10, fig.width=10, warning=FALSE, tidy=FALSE}
+################################# Gender #################################
+
+#calling ggplot function to create a bar graph
+ggplot(data=Adult, aes(x=sex)) +
+  geom_bar() +
+  geom_bar(fill = fill, colour = line) +
+  geom_text(stat='count', aes(label=..count..), vjust=-1) +
+  ggtitle("Different Gender")+
+  xlab("Gender") +
+  ylab("Count")
+
+################################ END ######################################
+```
+
+Mostlt Adults are male in our data set
+
+## Impact of Work Class on Income
+
+```{r echo=FALSE, fig.height=10, fig.width=10, warning=FALSE, tidy=FALSE}
+################# Impact of Work Class on Income ##########################
+ggplot(data=Adult, aes(x=workclass,fill = income)) +
+  geom_bar(position=position_dodge())+
+  scale_fill_brewer(palette="Paired")+
+  ggtitle("Work Class Vs Income") +
+  theme_minimal()+
+  xlab("Work Class") +
+  ylab("Count")
+
+################################ END ######################################
+```
+
+From our graph we can see that mostly adults who works in private sector have the income of more than 50k and self employed work class earn less comparing to other work class.
+
+## Impact of Education on Income
+
+```{r echo=FALSE, fig.height=10, fig.width=12, warning=FALSE, tidy=FALSE}
+################# Impact of Education on Income ##########################
+ggplot(data=Adult, aes(x=education,fill = income)) +
+  geom_bar(position=position_dodge())+
+  scale_fill_brewer(palette="Paired")+
+  ggtitle("Education Vs Income") +
+  theme_minimal()+
+  xlab("Education") +
+  ylab("Count")
+
+################################ END ######################################
+```
+
+From our graph we can see that mostly adults who had education from HS-grad have the income of more than 50k and self employed work class earn less comparing to other work class.
+
+## Impact of Occupation on Income
+
+```{r echo=FALSE, fig.height=12, fig.width=15, warning=FALSE, tidy=FALSE}
+################# Impact of Occupation on Income ##########################
+ggplot(data=Adult, aes(x=occupation,fill = income)) +
+  geom_bar(position=position_dodge())+
+  scale_fill_brewer(palette="Paired")+
+  ggtitle("Occupation Vs Income") +
+  theme_minimal()+
+  xlab("Occupation") +
+  ylab("Count")
+
+################################ END ######################################
+```
+
+Armed Force is the occupation in which people earn less and it is because less people works there.
+
+## Relationship between Education vs Years of Education
+
+```{r echo=FALSE, fig.height=10, fig.width=10, warning=FALSE, tidy=FALSE}
+############ Relationship between Education vs Years of Education #########
+ggplot(Adult, aes(x=education.num, y=education)) + 
+  geom_point()+
+  geom_smooth(method=lm) +
+  ylab("Education") +
+  xlab("Years of Education")
+
+################################ END ######################################
+```
+This graphs shows us how many years needed to complete the one of the education category. So we can see thet doctrate need 16 years of education which is maximum in camparison with others.
+
+##KNN Model
+# Splitting data into training and test datasets. 
+```{r include=FALSE, warning = FALSE, tidy = TRUE}
+set.seed(3)
+income <- Adult$income
+id <-   sample(2, nrow(Adult), prob = c(0.7,0.3), replace = TRUE )
+Adult.model <- model.matrix(income~.-1,Adult)
+
+# Creating training and test data
+TrainAdult <- Adult.model[id ==1,]
+TestAdult <- Adult.model[id ==2,]
+
+#calculating rows in train and test data set
+nrow(TrainAdult)
+nrow(TestAdult)
+
+#Display the internal structure of training and test dataset
+str(TrainAdult)
+str(TestAdult)
+
+#Creating income test and train variable to pass in Knn
+TrainIncome <- income[id==1]
+TestIncome <- income[id==2]
+
+#calculating square root of no. of rows
+sqrt_Train <- round(sqrt(nrow(TrainAdult)),1)
+sqrt2_Test <- round(sqrt(nrow(TestAdult)),1)
+```
+
+
+#Calling KNN function
+Using k value as square root of no. of rows in Train Adult **`r sqrt_Train`**<br>
+We tried with the value of k = 144,145 and 146 and got the best accuracy with 146.<br>
+So, we are showing its value of k = 146 only because it is will be easy to load the RMD file. 
+
+```{r include=FALSE, warning = FALSE, tidy = TRUE}
+knn.146 <- knn(train = TrainAdult, test = TestAdult, TrainIncome, k=146)
+
+#Calculating Accuracy
+Accuracy <- 100 * sum(TestIncome == knn.146)/NROW(TestIncome)
+
+# Getting Accuracy Percentage
+Accuracy 
+```
+The accuracy of the model: **`r Accuracy`**<br>.
+
+
+
+```{r echo=FALSE, warning = FALSE, tidy = TRUE}
+#Confusion matrix for most accurate model 
+#Choose the best accurate k value for confusion matrix
+table(knn.146,TestIncome)
+confusionMatrix(table(knn.146,TestIncome))
+```
+
+From the matrix we can know that there are two possible predicted classes: <=50 and >50. <br>
+We are predicting where the adult is earning <=50k or >50k.<br>
+
+Let's now define the most basic terms:<br>
+**true positives (TP):** These are cases in which we predicted <=50k, and they are <=50k. i.e. **6718** <br>
+**true negatives (TN):** We predicted >50k, and they are >50k. i.e. **153**<br>
+**false positives (FP):** We predicted <=50k, but they actually get >50k (Also known as a "Type I error.") i.e. **2**<br>
+**false negatives (FN):** We predicted >50k, but they actually is <=50k. (Also known as a "Type II error.") i.e. **2112**<br>
+
+**Accuracy:** It will tell how accurate your model is.<br>
+**Sensitivity:** It is also know as True positive rate. <br>
+**Specificity:** It is also know as True Negative rate. <br>
+**Positive Predictive Value (PPV):** when the prediction is positive, how often is it correct. <br>
+**Negative Predictive Value (NPV):** when the prediction is negative, how often is it correct. <br>
+
+```{r comment}
+#The value  of k from 1 to 20, shows the best value for the accuracy of our model
+#Optimization in the code had been done, but were not using those codes here due to the loading speed of RMD file.
